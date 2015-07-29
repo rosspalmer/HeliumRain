@@ -71,7 +71,6 @@ void UFlareWeapon::Initialize(const FFlareSpacecraftComponentSave* Data, UFlareC
 	// Spawn properties
 	ProjectileSpawnParams.Instigator = SpacecraftPawn;
 	ProjectileSpawnParams.bNoFail = true;
-	ProjectileSpawnParams.bNoCollisionFail = true;
 
 	// Additional properties
 	LastFiredGun = -1;
