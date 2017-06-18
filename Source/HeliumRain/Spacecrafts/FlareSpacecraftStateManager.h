@@ -48,6 +48,15 @@ public:
 	void ResetExternalCamera();
 
 	void OnCollision();
+
+	// Register an object for the missile cam
+	void RegisterMissile(class AFlareBomb* Missile);
+
+	// Unregister an object for the missile cam
+	void UnregisterMissile(class AFlareBomb* Missile);
+
+	//  Toggle the missile cam
+	void SetMissileCamState(bool State);
 	
 	// Mouse aim and firing
 	virtual void SetPlayerMousePosition(FVector2D Val);
@@ -124,8 +133,11 @@ protected:
 	float									 InternalCameraPitchTarget;
 	float									 InternalCameraYawTarget;
 	
+	// Weapons
 	EFlareWeaponGroupType::Type              LastWeaponType;
 	bool                                     PlayerFiring;
+	bool                                     ShowMissileCam;
+	class AFlareBomb*                        LastFiredMissile;
 	
 	// Manual player pilot
 	bool                                     PlayerLeftMousePressed;

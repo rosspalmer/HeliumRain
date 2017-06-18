@@ -11,6 +11,7 @@
 #include "FlarePilotHelper.h"
 #include "FlareSpacecraft.h"
 #include "FlareShipPilot.h"
+#include "FlareBomb.h"
 
 DECLARE_CYCLE_STAT(TEXT("FlareStateManager Tick"), STAT_FlareStateManager_Tick, STATGROUP_Flare);
 DECLARE_CYCLE_STAT(TEXT("FlareStateManager Camera"), STAT_FlareStateManager_Camera, STATGROUP_Flare);
@@ -223,8 +224,9 @@ void UFlareSpacecraftStateManager::Tick(float DeltaSeconds)
 void UFlareSpacecraftStateManager::UpdateCamera(float DeltaSeconds)
 {
 	SCOPE_CYCLE_COUNTER(STAT_FlareStateManager_Camera);
-
 	AFlarePlayerController* PC = Spacecraft->GetPC();
+
+	// Ship camera is never updated in menus
 	if (Spacecraft->IsFlownByPlayer() && PC)
 	{
 		if (PC->GetMenuManager()->IsUIOpen())
@@ -233,18 +235,35 @@ void UFlareSpacecraftStateManager::UpdateCamera(float DeltaSeconds)
 		}
 	}
 
+	// Ship camera is removed when not flown
 	if (!Spacecraft->IsFlownByPlayer())
 	{
 		Spacecraft->DisableImmersiveCamera();
 		return;
 	}
 
-	if (Spacecraft->GetWeaponsSystem()->IsInFireDirector())
+	// Missile camera
+	if (ShowMissileCam)
+	{
+		FVector TargetVector = LastFiredMissile->GetTargetSpacecraft()->GetActorLocation() - LastFiredMissile->GetActorLocation();
+		FRotator LocalTargetDirection = LastFiredMissile->GetTransform().InverseTransformVectorNoScale(TargetVector).Rotation();
+		float LifetimeAlpha = FMath::Clamp(LastFiredMissile->GetLifeTime() / 5.0f, 0.0f, 1.0f);
+
+		// Apply rotation
+		Spacecraft->SetCameraPitch(LifetimeAlpha * LocalTargetDirection.Pitch);
+		Spacecraft->SetCameraYaw(LifetimeAlpha * LocalTargetDirection.Yaw);
+
+		// Apply distance
+		float TargetDistance = FMath::Lerp(1500.0f, 3000.0f, LifetimeAlpha);
+		Spacecraft->SetCameraDistance(FMath::Min(TargetDistance, TargetVector.Size()));
+	}
+
+	// Fire director mode
+	else if (Spacecraft->GetWeaponsSystem()->IsInFireDirector())
 	{
 		float YawRotation = FireDirectorAngularVelocity.Z * DeltaSeconds;
 		float PitchRotation = FireDirectorAngularVelocity.Y * DeltaSeconds;
-
-
+		
 		if (!IsFireDirectorInit)
 		{
 			FVector FrontVector = Spacecraft->Airframe->ComponentToWorld.TransformVector(FVector(1, 0, 0));
@@ -259,9 +278,10 @@ void UFlareSpacecraftStateManager::UpdateCamera(float DeltaSeconds)
 		FireDirectorLookRotation *= Pitch;
 		FireDirectorLookRotation.Normalize();
 
-
 		Spacecraft->ConfigureImmersiveCamera(FireDirectorLookRotation);
 	}
+
+	// External camera
 	else if (ExternalCamera)
 	{
 		float ManualAcc = 600; //°/s-2
@@ -314,6 +334,8 @@ void UFlareSpacecraftStateManager::UpdateCamera(float DeltaSeconds)
 
 		IsFireDirectorInit = false;
 	}
+
+	// Regular camera
 	else
 	{
 		InternalCameraYawTarget = 0;
@@ -703,4 +725,64 @@ void UFlareSpacecraftStateManager::ResetExternalCamera()
 void UFlareSpacecraftStateManager::OnCollision()
 {
 	PlayerManualVelocityCommand = FVector::DotProduct(Spacecraft->GetLinearVelocity(), Spacecraft->GetFrontVector()) / Spacecraft->GetNavigationSystem()->GetLinearMaxVelocity();
+}
+
+void UFlareSpacecraftStateManager::RegisterMissile(AFlareBomb* Missile)
+{
+	if (Missile && Missile->GetFiringWeapon()->GetSpacecraft()->GetCurrentTarget())
+	{
+		LastFiredMissile = Missile;
+		SetMissileCamState(true); // TODO : remove this if we move the feature to production
+	}
+}
+
+void UFlareSpacecraftStateManager::UnregisterMissile(AFlareBomb* Missile)
+{
+	if (LastFiredMissile == Missile)
+	{
+		LastFiredMissile = NULL;
+		SetMissileCamState(false); // TODO : remove this if we move the feature to production
+	}
+}
+
+void UFlareSpacecraftStateManager::SetMissileCamState(bool State)
+{
+	AActor* Target = NULL;
+	AFlarePlayerController* PC = Spacecraft->GetPC();
+	AFlareCockpitManager* CockpitManager = PC->GetCockpitManager();
+
+	// Pick target
+	if (State)
+	{
+		Target = LastFiredMissile;
+	}
+	else
+	{
+		Target = Spacecraft;
+	}
+
+	// Apply
+	ShowMissileCam = State;
+	Spacecraft->SetCameraTarget(Target);
+
+	// Change states
+	if (State)
+	{
+		if (PC->UseCockpit)
+		{
+			CockpitManager->OnStopFlying();
+			Spacecraft->DisableImmersiveCamera();
+		}
+	}
+	else
+	{
+		// Force a reset to internal camera
+		ExternalCamera = true;
+		SetExternalCamera(false);
+
+		if (PC->UseCockpit)
+		{
+			CockpitManager->OnFlyShip(Spacecraft);
+		}
+	}
 }

@@ -112,14 +112,21 @@ void AFlareBomb::OnLaunched(AFlareSpacecraft* Target)
 
 	CombatLog::BombDropped(this);
 
+	// Launch
 	DetachRootComponentFromParent(true);
 	ParentWeapon->GetSpacecraft()->GetGame()->GetActiveSector()->RegisterBomb(this);
+	if (WeaponDescription->WeaponCharacteristics.BombCharacteristics.MaxBurnDuration > 0)
+	{
+		FLOG("AFlareBomb::OnLaunched : missile, registering camera");
+		ParentWeapon->GetSpacecraft()->GetStateManager()->RegisterMissile(this);
+	}
 
 	// Spin to stabilize
 	FVector FrontVector = BombComp->ComponentToWorld.TransformVector(FVector(1, 0, 0));
 	BombComp->SetPhysicsAngularVelocity(FrontVector * WeaponDescription->WeaponCharacteristics.BombCharacteristics.DropAngularVelocity);
 	BombComp->SetPhysicsLinearVelocity(ParentWeapon->GetSpacecraft()->Airframe->GetPhysicsLinearVelocity() + FrontVector * WeaponDescription->WeaponCharacteristics.BombCharacteristics.DropLinearVelocity * 100);
 
+	// Save data
 	BombData.DropParentDistance = GetParentDistance();
 	BombData.Dropped = true;
 	BombData.LifeTime = 0;
@@ -179,46 +186,32 @@ void AFlareBomb::Tick(float DeltaSeconds)
 			}
 		}
 	}
-
-	float NeededAcceleration = 0;
-
-
 	
+	// Missile guidance process
+	float NeededAcceleration = 0;
 	if (TargetSpacecraft && BombData.LifeTime > WeaponDescription->WeaponCharacteristics.BombCharacteristics.ActivationTime && BombData.BurnDuration < WeaponDescription->WeaponCharacteristics.BombCharacteristics.MaxBurnDuration)
 	{
-		//ProcessGuidance(DeltaSeconds);
-		//v2
 		FVector TargetPredictedLocation = TargetSpacecraft->GetActorLocation();
 		FVector TargetDeltaLocation = TargetPredictedLocation - GetActorLocation();
 		FVector TargetDirection = TargetDeltaLocation.GetUnsafeNormal();
-
-
+		
 		FVector TargetVelocity = TargetSpacecraft->GetVelocity();
-
 		FVector BombVelocityRefTarget = BombComp->GetPhysicsLinearVelocity() - TargetVelocity;
 		FVector BombVelocityDirectionRefTarget = BombVelocityRefTarget.GetUnsafeNormal();
-
-
 		FVector AimVelocityRefTarget = TargetDirection * WeaponDescription->WeaponCharacteristics.BombCharacteristics.NominalVelocity;
-
-
-	
+			
 		float MaxDeltaV = WeaponDescription->WeaponCharacteristics.BombCharacteristics.MaxAcceleration * DeltaSeconds;
-
 		float Dot = FVector::DotProduct(BombVelocityDirectionRefTarget, TargetDirection);
 		FVector EffectiveDeltaVelocity = FVector::ZeroVector;
-
 		FVector FineAimVelocityRefTarget = AimVelocityRefTarget;
-
-
+		
 		/*FLOGV("TargetDeltaLocation %s", *TargetDeltaLocation.ToString());
 		FLOGV("TargetDirection %s", *TargetDirection.ToString());
 		FLOGV("TargetVelocity %s", *TargetVelocity.ToString());
 		FLOGV("BombVelocityRefTarget %s", *BombVelocityRefTarget.ToString());
 		FLOGV("BombVelocityDirectionRefTarget %s", *BombVelocityDirectionRefTarget.ToString());
 		FLOGV("AimVelocityRefTarget %s", *AimVelocityRefTarget.ToString());
-
-
+		
 		FLOGV("Dot %f", Dot);*/
 
 		/*if (!BombVelocityRefTarget.IsNearlyZero())
@@ -241,19 +234,14 @@ void AFlareBomb::Tick(float DeltaSeconds)
 		//FLOGV("FineAimVelocityRefTarget Dot %f", FVector::DotProduct(FineAimVelocityRefTarget.GetUnsafeNormal(), TargetDirection));
 
 		FVector DeltaVelocity = FineAimVelocityRefTarget - BombVelocityRefTarget;
-
-
-
 		FVector AngularVelocityTarget = FVector::ZeroVector;
 
-
+		// Compute velocities
 		if (!DeltaVelocity.IsNearlyZero())
 		{
 			FVector DeltaVelocityDirection = DeltaVelocity.GetUnsafeNormal();
 			FVector WorldBombAxis = BombComp->GetComponentToWorld().GetRotation().RotateVector(FVector::ForwardVector);
-
-			//FLOGV("GimbalRangeDot %f", FVector::DotProduct(DeltaVelocityDirection, WorldBombAxis));
-
+			
 			if (!BombData.Locked && FVector::DotProduct(DeltaVelocityDirection, WorldBombAxis) > GimbalRangeDot)
 			{
 				BombData.Locked = true;
@@ -262,23 +250,19 @@ void AFlareBomb::Tick(float DeltaSeconds)
 			// Bomb orientation
 			AngularVelocityTarget = GetAngularVelocityToAlignAxis(DeltaVelocityDirection,WeaponDescription->WeaponCharacteristics.BombCharacteristics.AngularAcceleration, DeltaSeconds);
 
+			//FLOGV("GimbalRangeDot %f", FVector::DotProduct(DeltaVelocityDirection, WorldBombAxis));
 			//DrawDebugLine(GetWorld(), GetActorLocation(), GetActorLocation() + DeltaVelocityDirection * 100, FColor::Green, false);
 		}
 
-
+		// Update linear velocity
 		if (BombData.Locked)
 		{
 			EffectiveDeltaVelocity = DeltaVelocity.GetClampedToSize(0, MaxDeltaV);
 		}
-
 		NeededAcceleration = EffectiveDeltaVelocity.Size() / MaxDeltaV;
+		BombComp->SetPhysicsLinearVelocity(EffectiveDeltaVelocity, true);
 
-
-
-		BombComp->SetPhysicsLinearVelocity(EffectiveDeltaVelocity, true); // Multiply by 100 because UE4 works in cm
-		//BombComp->SetRelativeRotation(FRotator(FQuat::FastLerp(BombComp->RelativeRotation.Quaternion(), BombVelocityDirection.Rotation().Quaternion(), DeltaSeconds)));
-
-		// Angular physics
+		// Update angular velocity
 		FVector DeltaAngularV = AngularVelocityTarget - BombComp->GetPhysicsAngularVelocity();
 
 		if (!DeltaAngularV.IsNearlyZero())
@@ -309,17 +293,15 @@ void AFlareBomb::Tick(float DeltaSeconds)
 			DrawDebugLine(GetWorld(), GetActorLocation(), GetActorLocation() + EffectiveDeltaVelocity, FColor::Blue, true);
 			DrawDebugLine(GetWorld(), TargetSpacecraft->GetActorLocation(), LastTargetLocation, FColor::Red, true);
 		}*/
-		LastLocation = GetActorLocation();
-		LastTargetLocation = TargetSpacecraft->GetActorLocation();
-		
 
+		// Update data
+		LastLocation = GetActorLocation();
+		LastTargetLocation = TargetSpacecraft->GetActorLocation();		
 		BombData.BurnDuration += NeededAcceleration * DeltaSeconds;
 	}
 
 	BombComp->UpdateEffects(NeededAcceleration);
-
 }
-
 
 
 FVector AFlareBomb::GetAngularVelocityToAlignAxis(FVector TargetAxis, float AngularAcceleration, float DeltaSeconds) const
@@ -521,7 +503,7 @@ void AFlareBomb::OnBombDetonated(AFlareSpacecraft* HitSpacecraft, UFlareSpacecra
 {
 	// Attach to the hull if it's a salvage harpoon
 	if (HitSpacecraft && (
-			(WeaponDescription->WeaponCharacteristics.DamageType == EFlareShellDamageType::LightSalvage)
+		(WeaponDescription->WeaponCharacteristics.DamageType == EFlareShellDamageType::LightSalvage)
 	 || (WeaponDescription->WeaponCharacteristics.DamageType == EFlareShellDamageType::HeavySalvage)))
 	{
 		if (HitSpacecraft && !HitSpacecraft->IsStation() && HitComponent && WeaponDescription &&
@@ -534,12 +516,16 @@ void AFlareBomb::OnBombDetonated(AFlareSpacecraft* HitSpacecraft, UFlareSpacecra
 			AttachBomb(HitSpacecraft);
 		}
 	}
+
+	// Regular detonation
 	else
 	{
 		if (ParentWeapon)
 		{
 			ParentWeapon->GetSpacecraft()->GetGame()->GetActiveSector()->UnregisterBomb(this);
+			ParentWeapon->GetSpacecraft()->GetStateManager()->UnregisterMissile(this);
 		}
+
 		CombatLog::BombDestroyed(GetIdentifier());
 		Destroy();
 	}

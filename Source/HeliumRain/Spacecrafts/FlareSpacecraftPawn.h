@@ -63,6 +63,10 @@ public:
 
 	void SetPhysicalVisibility(bool Visibility);
 
+	/** Force a new target */
+	void SetCameraTarget(AActor* Target);
+
+
 	/*----------------------------------------------------
 		Customization
 	----------------------------------------------------*/
