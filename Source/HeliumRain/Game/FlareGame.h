@@ -81,8 +81,6 @@ public:
 
 	virtual void Scrap(FName ShipImmatriculation, FName TargetStationImmatriculation);
 
-	virtual float GetAINerfRatio();
-
 	/*----------------------------------------------------
 		Save slots
 	----------------------------------------------------*/
@@ -216,10 +214,6 @@ protected:
 	// Post process volume
 	UPROPERTY()
 	APostProcessVolume*                        PostProcessVolume;
-	
-
-	float                                      AINerfRatio;
-	int64                                      AINerfRatioCacheDate;
 
 	/*----------------------------------------------------
 		Catalogs
