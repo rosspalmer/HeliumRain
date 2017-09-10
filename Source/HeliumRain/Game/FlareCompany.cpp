@@ -1011,11 +1011,11 @@ bool UFlareCompany::HasKnowResourceInput(FFlareResourceDescription* Resource)
 	{
 		for(UFlareSimulatedSpacecraft* Station : Sector->GetSectorStations())
 		{
-			EFlareResourcePriceContext::Type StationResourceUsage = Station->GetResourceUseType(Resource);
+			EFlareResourceUsageContext::Type StationResourceUsage = Station->GetResourceUseType(Resource);
 
-			if(StationResourceUsage != EFlareResourcePriceContext::FactoryInput &&
-				StationResourceUsage != EFlareResourcePriceContext::ConsumerConsumption &&
-				StationResourceUsage != EFlareResourcePriceContext::MaintenanceConsumption)
+			if(StationResourceUsage != EFlareResourceUsageContext::FactoryInput &&
+				StationResourceUsage != EFlareResourceUsageContext::ConsumerConsumption &&
+				StationResourceUsage != EFlareResourceUsageContext::MaintenanceConsumption)
 			{
 				continue;
 			}

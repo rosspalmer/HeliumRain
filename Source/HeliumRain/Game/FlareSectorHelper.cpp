@@ -86,17 +86,17 @@ UFlareSimulatedSpacecraft*  SectorHelper::FindTradeStation(FlareTradeRequest Req
 		{
 			continue;
 		}
-		EFlareResourcePriceContext::Type StationResourceUsage = Station->GetResourceUseType(Request.Resource);
+		EFlareResourceUsageContext::Type StationResourceUsage = Station->GetResourceUseType(Request.Resource);
 
-		if(NeedOutput && (StationResourceUsage != EFlareResourcePriceContext::FactoryOutput &&
-						  StationResourceUsage != EFlareResourcePriceContext::MaintenanceConsumption))
+		if(NeedOutput && (StationResourceUsage != EFlareResourceUsageContext::FactoryOutput &&
+						  StationResourceUsage != EFlareResourceUsageContext::MaintenanceConsumption))
 		{
 			continue;
 		}
 
-		if(NeedInput && (StationResourceUsage != EFlareResourcePriceContext::FactoryInput &&
-						 StationResourceUsage != EFlareResourcePriceContext::ConsumerConsumption &&
-						 StationResourceUsage != EFlareResourcePriceContext::MaintenanceConsumption))
+		if(NeedInput && (StationResourceUsage != EFlareResourceUsageContext::FactoryInput &&
+						 StationResourceUsage != EFlareResourceUsageContext::ConsumerConsumption &&
+						 StationResourceUsage != EFlareResourceUsageContext::MaintenanceConsumption))
 		{
 			continue;
 		}
@@ -817,14 +817,14 @@ TMap<FFlareResourceDescription*, WorldHelper::FlareResourceStats> SectorHelper::
 
 			switch (Spacecraft->GetResourceUseType(Cargo.Resource))
 			{
-				case EFlareResourcePriceContext::FactoryInput:
-				case EFlareResourcePriceContext::ConsumerConsumption:
+				case EFlareResourceUsageContext::FactoryInput:
+				case EFlareResourceUsageContext::ConsumerConsumption:
 					ResourceStats->Capacity += Spacecraft->GetCargoBay()->GetSlotCapacity() - Cargo.Quantity;
 				break;
-				case EFlareResourcePriceContext::FactoryOutput:
+				case EFlareResourceUsageContext::FactoryOutput:
 					ResourceStats->Stock += Cargo.Quantity;
 				break;
-				case EFlareResourcePriceContext::MaintenanceConsumption:
+				case EFlareResourceUsageContext::MaintenanceConsumption:
 					ResourceStats->Capacity += Spacecraft->GetCargoBay()->GetSlotCapacity() - Cargo.Quantity;
 					ResourceStats->Stock += Cargo.Quantity;
 				break;

@@ -1204,7 +1204,7 @@ float UFlareFactory::GetMarginRatio()
 	{
 		const FFlareFactoryResource* Resource = &GetCycleData().OutputResources[ResourceIndex];
 
-		SellPrice += Parent->GetCurrentSector()->GetResourcePrice(&Resource->Resource->Data, EFlareResourcePriceContext::FactoryInput) * Resource->Quantity;
+		SellPrice += Parent->GetResourcePrice(&Resource->Resource->Data, EFlareResourcePriceContext::BuyPrice) * Resource->Quantity;
 	}
 
 	if(SellPrice == 0)
@@ -1226,7 +1226,7 @@ int64 UFlareFactory::GetProductionBalance()
 	{
 		const FFlareFactoryResource* Resource = &GetCycleData().InputResources[ResourceIndex];
 
-		Balance -= Parent->GetCurrentSector()->GetResourcePrice(&Resource->Resource->Data, EFlareResourcePriceContext::FactoryOutput) * Resource->Quantity;
+		Balance -= Parent->GetResourcePrice(&Resource->Resource->Data, EFlareResourcePriceContext::SellPrice) * Resource->Quantity;
 	}
 
 	Balance -= GetProductionCost();
@@ -1235,7 +1235,7 @@ int64 UFlareFactory::GetProductionBalance()
 	{
 		const FFlareFactoryResource* Resource = &GetCycleData().OutputResources[ResourceIndex];
 
-		Balance += Parent->GetCurrentSector()->GetResourcePrice(&Resource->Resource->Data, EFlareResourcePriceContext::FactoryInput) * Resource->Quantity;
+		Balance += Parent->GetResourcePrice(&Resource->Resource->Data, EFlareResourcePriceContext::BuyPrice) * Resource->Quantity;
 	}
 
 	return Balance;

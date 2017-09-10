@@ -149,8 +149,11 @@ public:
 
 	bool CanTradeWith(UFlareSimulatedSpacecraft* OtherSpacecraft, FText& Reason);
 
-	EFlareResourcePriceContext::Type GetResourceUseType(FFlareResourceDescription* Resource);
+	EFlareResourceUsageContext::Type GetResourceUseType(FFlareResourceDescription* Resource);
 	void LockResources();
+
+	int64 GetResourcePrice(FFlareResourceDescription* Resource, EFlareResourcePriceContext::Type PriceContext, int32 Age = 0);
+
 
 
 	/*----------------------------------------------------

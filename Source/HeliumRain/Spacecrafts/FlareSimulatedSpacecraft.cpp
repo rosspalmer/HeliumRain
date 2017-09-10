@@ -319,12 +319,12 @@ bool UFlareSimulatedSpacecraft::CanTradeWith(UFlareSimulatedSpacecraft* OtherSpa
 	return true;
 }
 
-EFlareResourcePriceContext::Type UFlareSimulatedSpacecraft::GetResourceUseType(FFlareResourceDescription* Resource)
+EFlareResourceUsageContext::Type UFlareSimulatedSpacecraft::GetResourceUseType(FFlareResourceDescription* Resource)
 {
 	// Check we're and station
 	if (!IsStation())
 	{
-		return EFlareResourcePriceContext::Default;
+		return EFlareResourceUsageContext::None;
 	}
 
 	// Parse factories
@@ -337,7 +337,7 @@ EFlareResourcePriceContext::Type UFlareSimulatedSpacecraft::GetResourceUseType(F
 			const FFlareFactoryResource* FactoryResource = &Factory->GetCycleData().InputResources[ResourceIndex];
 			if (&FactoryResource->Resource->Data == Resource)
 			{
-				return EFlareResourcePriceContext::FactoryInput;
+				return EFlareResourceUsageContext::FactoryInput;
 			}
 		}
 
@@ -347,7 +347,7 @@ EFlareResourcePriceContext::Type UFlareSimulatedSpacecraft::GetResourceUseType(F
 			const FFlareFactoryResource* FactoryResource = &Factory->GetCycleData().OutputResources[ResourceIndex];
 			if (&FactoryResource->Resource->Data == Resource)
 			{
-				return EFlareResourcePriceContext::FactoryOutput;
+				return EFlareResourceUsageContext::FactoryOutput;
 			}
 		}
 	}
@@ -355,13 +355,13 @@ EFlareResourcePriceContext::Type UFlareSimulatedSpacecraft::GetResourceUseType(F
 	// Customer resource ?
 	if (SpacecraftDescription->Capabilities.Contains(EFlareSpacecraftCapability::Consumer) && Resource->IsConsumerResource)
 	{
-		return EFlareResourcePriceContext::ConsumerConsumption;
+		return EFlareResourceUsageContext::ConsumerConsumption;
 	}
 
 	// Maintenance resource ?
 	if (SpacecraftDescription->Capabilities.Contains(EFlareSpacecraftCapability::Maintenance) && Resource->IsMaintenanceResource)
 	{
-		return EFlareResourcePriceContext::MaintenanceConsumption;
+		return EFlareResourceUsageContext::MaintenanceConsumption;
 	}
 
 	return EFlareResourcePriceContext::Default;
