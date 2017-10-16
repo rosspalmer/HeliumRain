@@ -25,11 +25,12 @@
 
 #include "../UI/Menus/FlareShipMenu.h"
 
+#include "Components/DecalComponent.h"
+#include "Kismet/KismetMathLibrary.h"
 #include "Engine/CanvasRenderTarget2D.h"
 #include "Engine/Canvas.h"
-#include "Components/DecalComponent.h"
 #include "EngineUtils.h"
-#include "Kismet/KismetMathLibrary.h"
+#include "Engine.h"
 
 
 DECLARE_CYCLE_STAT(TEXT("FlareSpacecraft Systems"), STAT_FlareSpacecraft_Systems, STATGROUP_Flare);
@@ -551,7 +552,7 @@ void AFlareSpacecraft::SetPause(bool Pause)
 	{
 		//FLOGV("%s restore linear velocity : %s", *GetImmatriculation().ToString(), *GetData().LinearVelocity.ToString());
 		Airframe->SetPhysicsLinearVelocity(GetData().LinearVelocity);
-		Airframe->SetPhysicsAngularVelocity(GetData().AngularVelocity);
+		Airframe->SetPhysicsAngularVelocityInDegrees(GetData().AngularVelocity);
 		SmoothedVelocity = GetLinearVelocity();
 	}
 }
@@ -942,7 +943,7 @@ void AFlareSpacecraft::Save()
 	if (!IsPaused())
 	{
 		GetData().LinearVelocity = Airframe->GetPhysicsLinearVelocity();
-		GetData().AngularVelocity = Airframe->GetPhysicsAngularVelocity();
+		GetData().AngularVelocity = Airframe->GetPhysicsAngularVelocityInDegrees();
 	}
 
 	// Save all components datas
